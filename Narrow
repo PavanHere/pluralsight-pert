@@ -1,0 +1,43 @@
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.dao.DataAccessException;
+import java.util.List;
+import java.util.Map;
+import java.util.ArrayList;
+
+public class YourClassName {
+    
+    private JdbcTemplate jdbcTemplate;
+    private int caspseStoredProctimeOut; // Assuming this variable is defined somewhere
+    
+    public <T> List<T> executeReadStoredProcedure(String storedProcedureName, Object[] params, RowMapper<T> rowMapper) {
+        jdbcTemplate.setQueryTimeout(caspseStoredProctimeOut);
+        
+        try {
+            List<Map<String, Object>> resultMapList = jdbcTemplate.queryForList(storedProcedureName, params);
+            List<T> resultList = new ArrayList<>();
+            
+            for (Map<String, Object> row : resultMapList) {
+                T mappedObject = rowMapper.mapRow(new MapRowResultSet(row));
+                resultList.add(mappedObject);
+            }
+            
+            return resultList;
+        } catch (DataAccessException ex) {
+            throw new VasproducerAPIException("Error executing stored procedure", ex);
+        }
+    }
+    
+    // Custom ResultSet implementation to adapt Map<String, Object> to ResultSet
+    private static class MapRowResultSet implements ResultSet {
+        private final Map<String, Object> row;
+
+        MapRowResultSet(Map<String, Object> row) {
+            this.row = row;
+        }
+
+        @Override
+        public Object getObject(String columnLabel) {
+            return row.get(columnLabel);
+        }
+    }
+}
